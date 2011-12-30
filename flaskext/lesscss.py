@@ -35,14 +35,27 @@ def lesscss(app):
                 for f in filenames if os.path.splitext(f)[1] == '.less'
             ])
         
+        css_base_path = static_dir + "/css"
+        d = os.path.dirname(css_base_path)
+        if not os.path.exists(d):
+            os.makedirs(d)
+
         for less_path in less_paths:
-            css_path = os.path.splitext(less_path)[0] + '.css'
+            path_parts = os.path.splitext(less_path)[0].split('/')
+            css_path = css_base_path + '/' + path_parts[len(path_parts) - 1] + '.css'
             if not os.path.isfile(css_path):
                 css_mtime = -1
+                open(css_path, 'w').close()
             else:
                 css_mtime = os.path.getmtime(css_path)
             less_mtime = os.path.getmtime(less_path)
             if less_mtime >= css_mtime:
-                subprocess.call(['lessc', less_path, css_path], shell=False)
+                app.logger.info("Compiling .less file: " + less_path)
+                return_code = subprocess.call(['lessc', less_path, css_path], shell=False)
+                if return_code == 0:
+                    app.logger.info("lessc done with: " + less_path)
+                else:
+                    app.logger.info("lessc failed on: " + less_path)
+                    os.remove(css_path)
 
 
